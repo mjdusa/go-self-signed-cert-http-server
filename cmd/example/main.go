@@ -4,13 +4,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"time"
 
 	"github.com/mjdusa/go-self-signed-cert-http-server/pkg/cert"
+	"github.com/mjdusa/go-self-signed-cert-http-server/pkg/http/client"
 )
 
 func main() {
@@ -62,12 +62,6 @@ func Example() {
 		panic(err)
 	}
 
-	// Convert to TLS cert
-	clientCert, err := tls.X509KeyPair(clientPEM.Bytes(), clientPrivKeyPEM.Bytes())
-	if err != nil {
-		panic(err)
-	}
-
 	caCertPool := x509.NewCertPool()
 	caCertPool.AddCert(caCert)
 	// alternatively, you can use AppendCertsFromPEM, but it is not as efficient as AddCert
@@ -94,36 +88,12 @@ func Example() {
 	server.StartTLS()
 	defer server.Close()
 
-	// setup client & make request
-	clientTLSConf := &tls.Config{
-		RootCAs:      caCertPool.Clone(),
-		Certificates: []tls.Certificate{clientCert},
-		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			// called after normal certificate verification, client cert is in verified first
-			// do custom verification here
-			return nil
-		},
+	respBody, herr := client.HttpsGet(caCertPool.Clone(), clientPEM.Bytes(), clientPrivKeyPEM.Bytes(), server.URL)
+	if herr != nil {
+		panic(herr)
 	}
 
-	transport := &http.Transport{
-		TLSClientConfig: clientTLSConf,
-	}
-
-	client := http.Client{
-		Transport: transport,
-	}
-
-	resp, err := client.Get(server.URL)
-	if err != nil {
-		panic(err)
-	}
-
-	respBodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	body := strings.TrimSpace(string(respBodyBytes[:]))
+	body := strings.TrimSpace(string(*respBody))
 	if body == "success!" {
 		fmt.Println(body)
 	} else {

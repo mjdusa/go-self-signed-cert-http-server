@@ -17,8 +17,8 @@ const (
 	RSAPrivateKey = "RSA PRIVATE KEY"
 )
 
-// WARNING / NOTICE: Some of thes steps could be optimized by changing the order of operations.
-//                   DON'T change the order, it will change the behavior of the code and can break the cert creation process.
+// WARNING / NOTICE: Some of these steps could be optimized by changing the order of operations.
+//                   DON'T change the order, it can change the behavior of the code and break the cert created.
 
 func CreateSerialNumber(nbr int) *big.Int {
 	return big.NewInt(int64(nbr))
