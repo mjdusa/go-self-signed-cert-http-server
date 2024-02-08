@@ -10,6 +10,9 @@ on:
 
   pull_request:
 
+# Don't grant any access by default
+permissions: {}
+
 env:
   target_ref: ${{ github.head_ref || github.ref_name }}
   GO111MODULE: on
@@ -18,11 +21,15 @@ env:
 jobs:
   super-linter:
     name: Super-Linter
+
     strategy:
       matrix:
         os: [ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
+
+    permissions:
+      contents: write
 
     steps:
       - name: actions/checkout
