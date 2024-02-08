@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -14,8 +15,9 @@ import (
 )
 
 const (
-	ServerSerialNumber = 1965
-	PrivateKeyBits     = 4096
+	CASerialNumber = 1965
+	CAYearsValid   = 10
+	PrivateKeyBits = 4096
 )
 
 func main() {
@@ -31,7 +33,7 @@ func Example() {
 	now := time.Now().UTC()
 	notBefore := now
 	notAfter := now.AddDate(1, 0, 0) // 1 year from now
-	caSerNbr := cert.CreateSerialNumber(ServerSerialNumber)
+	caSerNbr := cert.CreateSerialNumber(CASerialNumber)
 	serverSerNbr := cert.CreateSerialNumber(now.Year() - 1)
 
 	subject, err := cert.CreateSubject(
@@ -49,7 +51,7 @@ func Example() {
 	// caCert, caCertBytes, caPEM, caPrivKey, caPrivKeyPEM, err :=
 	//   cert.CreateSelfSignedCA(PrivateKeyBits, caSerNbr, subject, notBefore, notBefore.AddDate(10, 0, 0))
 	caCert, _, _, caPrivKey, _, err := cert.CreateSelfSignedCA(
-		PrivateKeyBits, caSerNbr, subject, notBefore, notBefore.AddDate(10, 0, 0))
+		PrivateKeyBits, caSerNbr, subject, notBefore, notBefore.AddDate(CAYearsValid, 0, 0))
 	if err != nil {
 		panic(err)
 	}
@@ -108,7 +110,8 @@ func Example() {
 	server.StartTLS()
 	defer server.Close()
 
-	respBody, herr := client.HTTPSGet(caCertPool.Clone(), clientPEM.Bytes(), clientPrivKeyPEM.Bytes(), server.URL)
+	ctx := context.Background()
+	respBody, herr := client.HTTPSGet(ctx, caCertPool.Clone(), clientPEM.Bytes(), clientPrivKeyPEM.Bytes(), server.URL)
 	if herr != nil {
 		panic(herr)
 	}

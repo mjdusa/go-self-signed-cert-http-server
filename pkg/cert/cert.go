@@ -7,12 +7,14 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"net"
 	"time"
 )
 
 const (
+	IPv4Loopback  = "127.0.0.1"
 	Certificate   = "CERTIFICATE"
 	RSAPrivateKey = "RSA PRIVATE KEY"
 )
@@ -25,22 +27,24 @@ func CreateSerialNumber(nbr int) *big.Int {
 }
 
 func CreateSubject(organization, country, province, locality, streetAddress, postalCode []string) (pkix.Name, error) {
-	return pkix.Name{
+	name := pkix.Name{
 		Organization:  organization,
 		Country:       country,
 		Province:      province,
 		Locality:      locality,
 		StreetAddress: streetAddress,
 		PostalCode:    postalCode,
-	}, nil
+	}
+	return name, nil
 }
 
 func CreatePrivateKey(bits int) (*rsa.PrivateKey, error) {
-	if key, err := rsa.GenerateKey(rand.Reader, bits); err != nil {
-		return nil, err
-	} else {
-		return key, nil
+	key, err := rsa.GenerateKey(rand.Reader, bits)
+	if err != nil {
+		return nil, fmt.Errorf("failed GenerateKey: %w", err)
 	}
+
+	return key, nil
 }
 
 func PEMEncodeBlock(blockType string, byArray []byte) (*bytes.Buffer, error) {
@@ -51,7 +55,7 @@ func PEMEncodeBlock(blockType string, byArray []byte) (*bytes.Buffer, error) {
 	}
 
 	if err := pem.Encode(buffer, &block); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed Encode: %w", err)
 	}
 
 	return buffer, nil
@@ -60,7 +64,7 @@ func PEMEncodeBlock(blockType string, byArray []byte) (*bytes.Buffer, error) {
 func createCertWithRSA(privateKeyBits int, template *x509.Certificate, parent *x509.Certificate,
 	caPrivKey *rsa.PrivateKey) (*x509.Certificate, []byte, *bytes.Buffer, *rsa.PrivateKey, *bytes.Buffer, error) {
 	fail := func(err error) (*x509.Certificate, []byte, *bytes.Buffer, *rsa.PrivateKey, *bytes.Buffer, error) {
-		return nil, []byte{}, nil, nil, nil, err
+		return nil, []byte{}, nil, nil, nil, fmt.Errorf("failed: %w", err)
 	}
 
 	// gen private key
@@ -127,7 +131,7 @@ func CreateSelfSignedCertificate(caCert *x509.Certificate, caPrivKey *rsa.Privat
 		NotBefore:    notBefore,
 		NotAfter:     notAfter,
 		IsCA:         false,
-		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
+		IPAddresses:  []net.IP{net.ParseIP(IPv4Loopback), net.IPv6loopback},
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:     x509.KeyUsageDigitalSignature,

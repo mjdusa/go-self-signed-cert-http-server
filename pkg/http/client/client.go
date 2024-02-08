@@ -1,21 +1,39 @@
 package client
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"time"
 )
 
-func HTTPSGet(rootCAPool *x509.CertPool, certPEM []byte, privKeyPEM []byte, url string) (*[]byte, error) {
+const (
+	DefaultTimeout               = 30 * time.Second
+	DefaultKeepAlive             = 30 * time.Second
+	DefaultMaxIdleConns          = 100
+	DefaultIdleConnTimeout       = 90 * time.Second
+	DefaultExpectContinueTimeout = 1 * time.Second
+	DefaultTLSHandshakeTimeout   = 10 * time.Second
+)
+
+func TransportDialContext(dialer *net.Dialer) func(context.Context, string, string) (net.Conn, error) {
+	return dialer.DialContext
+}
+
+func HTTPSGet(ctx context.Context, rootCAPool *x509.CertPool, certPEM []byte, privKeyPEM []byte,
+	url string) (*[]byte, error) {
 	// Convert to TLS cert
 	clientCert, xerr := tls.X509KeyPair(certPEM, privKeyPEM)
 	if xerr != nil {
-		return nil, xerr
+		return nil, fmt.Errorf("failed X509KeyPair: %w", xerr)
 	}
 
 	// setup client & make request
-	clientTLSConf := &tls.Config{
+	clientTLSConf := tls.Config{
 		RootCAs:      rootCAPool,
 		Certificates: []tls.Certificate{clientCert},
 		MinVersion:   tls.VersionTLS12,
@@ -27,22 +45,38 @@ func HTTPSGet(rootCAPool *x509.CertPool, certPEM []byte, privKeyPEM []byte, url 
 		},
 	}
 
-	transport := &http.Transport{
-		TLSClientConfig: clientTLSConf,
+	transport := http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: TransportDialContext(&net.Dialer{
+			Timeout:   DefaultTimeout,
+			KeepAlive: DefaultKeepAlive,
+		}),
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          DefaultMaxIdleConns,
+		IdleConnTimeout:       DefaultIdleConnTimeout,
+		ExpectContinueTimeout: DefaultExpectContinueTimeout,
+		TLSClientConfig:       &clientTLSConf,
+		TLSHandshakeTimeout:   DefaultTLSHandshakeTimeout,
 	}
 
-	client := http.Client{
-		Transport: transport,
+	client := http.DefaultClient
+	client.Transport = &transport
+
+	request, qerr := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if qerr != nil {
+		return nil, fmt.Errorf("failed NewRequestWithContext: %w", qerr)
 	}
 
-	resp, gerr := client.Get(url)
-	if gerr != nil {
-		return nil, gerr
+	resp, derr := client.Do(request)
+	if derr != nil {
+		return nil, fmt.Errorf("failed Do: %w", derr)
 	}
+
+	defer resp.Body.Close()
 
 	respBodyBytes, rerr := io.ReadAll(resp.Body)
 	if rerr != nil {
-		return nil, rerr
+		return nil, fmt.Errorf("failed ReadAll: %w", rerr)
 	}
 
 	return &respBodyBytes, nil
