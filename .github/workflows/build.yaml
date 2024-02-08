@@ -1,0 +1,63 @@
+---
+name: Build
+
+on:
+  workflow_dispatch:
+
+  workflow_call:
+
+  push:
+
+  pull_request:
+
+env:
+  target_ref: ${{ github.head_ref || github.ref_name }}
+  GO111MODULE: on
+  GOPRIVATE: ''
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        go-version: ['oldstable', 'stable']
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: actions/checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ env.target_ref }}
+          token: ${{ github.token }}
+
+      - name: actions/setup-go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: go version
+        run: |
+          go version
+          go env
+
+      - name: go mod tidy
+        run: |
+          go mod tidy
+
+      - name: go clean --cache
+        run: |
+          go clean --cache
+
+      - name: go build
+        run: |
+          echo "building"
+          go env
+          mkdir dist
+          go build -x -v -o dist/example cmd/example/main.go
+          ls -l dist
