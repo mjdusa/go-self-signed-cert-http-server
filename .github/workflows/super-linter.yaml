@@ -28,8 +28,13 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    ############################################
+    # Grant status permission for MULTI_STATUS #
+    ############################################
     permissions:
-      contents: write
+      contents: read
+      packages: read
+      statuses: write
 
     steps:
       - name: actions/checkout
