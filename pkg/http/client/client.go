@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func HttpsGet(rootCAPool *x509.CertPool, certPEM []byte, privKeyPEM []byte, url string) (*[]byte, error) {
+func HTTPSGet(rootCAPool *x509.CertPool, certPEM []byte, privKeyPEM []byte, url string) (*[]byte, error) {
 	// Convert to TLS cert
 	clientCert, xerr := tls.X509KeyPair(certPEM, privKeyPEM)
 	if xerr != nil {
@@ -18,6 +18,8 @@ func HttpsGet(rootCAPool *x509.CertPool, certPEM []byte, privKeyPEM []byte, url 
 	clientTLSConf := &tls.Config{
 		RootCAs:      rootCAPool,
 		Certificates: []tls.Certificate{clientCert},
+		MinVersion:   tls.VersionTLS12,
+		MaxVersion:   tls.VersionTLS13,
 		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 			// called after normal certificate verification, client cert is in verified first
 			// do custom verification here

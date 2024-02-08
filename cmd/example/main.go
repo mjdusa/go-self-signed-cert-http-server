@@ -13,6 +13,11 @@ import (
 	"github.com/mjdusa/go-self-signed-cert-http-server/pkg/http/client"
 )
 
+const (
+	ServerSerialNumber = 1965
+	PrivateKeyBits     = 4096
+)
+
 func main() {
 	Example()
 }
@@ -26,7 +31,7 @@ func Example() {
 	now := time.Now().UTC()
 	notBefore := now
 	notAfter := now.AddDate(1, 0, 0) // 1 year from now
-	caSerNbr := cert.CreateSerialNumber(1965)
+	caSerNbr := cert.CreateSerialNumber(ServerSerialNumber)
 	serverSerNbr := cert.CreateSerialNumber(now.Year() - 1)
 
 	subject, err := cert.CreateSubject(
@@ -42,18 +47,18 @@ func Example() {
 
 	// create CA cert
 	// caCert, caCertBytes, caPEM, caPrivKey, caPrivKeyPEM, err :=
-	//   cert.CreateSelfSignedCA(4096, caSerNbr, subject, notBefore, notBefore.AddDate(10, 0, 0))
+	//   cert.CreateSelfSignedCA(PrivateKeyBits, caSerNbr, subject, notBefore, notBefore.AddDate(10, 0, 0))
 	caCert, _, _, caPrivKey, _, err := cert.CreateSelfSignedCA(
-		4096, caSerNbr, subject, notBefore, notBefore.AddDate(10, 0, 0))
+		PrivateKeyBits, caSerNbr, subject, notBefore, notBefore.AddDate(10, 0, 0))
 	if err != nil {
 		panic(err)
 	}
 
 	// create server cert
 	// cert, certBytes, certPEM, privKey, privKeyPEM, err :=
-	//   cert.CreateSelfSignedCertificate(caCert, caPrivKey, 4096, serverSerNbr, subject, notBefore, notAfter)
+	//   cert.CreateSelfSignedCertificate(caCert, caPrivKey, PrivateKeyBits, serverSerNbr, subject, notBefore, notAfter)
 	_, _, serverPEM, _, serverPrivKeyPEM, err := cert.CreateSelfSignedCertificate(
-		caCert, caPrivKey, 4096, serverSerNbr, subject, notBefore, notAfter)
+		caCert, caPrivKey, PrivateKeyBits, serverSerNbr, subject, notBefore, notAfter)
 	if err != nil {
 		panic(err)
 	}
@@ -68,9 +73,9 @@ func Example() {
 
 	// create client cert
 	// cert, certBytes, certPEM, privKey, privKeyPEM, err :=
-	//   cert.CreateSelfSignedCertificate(caCert, caPrivKey, 4096, clientSerNbr, subject, notBefore, notAfter)
+	//   cert.CreateSelfSignedCertificate(caCert, caPrivKey, PrivateKeyBits, clientSerNbr, subject, notBefore, notAfter)
 	_, _, clientPEM, _, clientPrivKeyPEM, err := cert.CreateSelfSignedCertificate(
-		caCert, caPrivKey, 4096, clientSerNbr, subject, notBefore, notAfter)
+		caCert, caPrivKey, PrivateKeyBits, clientSerNbr, subject, notBefore, notAfter)
 	if err != nil {
 		panic(err)
 	}
@@ -103,15 +108,14 @@ func Example() {
 	server.StartTLS()
 	defer server.Close()
 
-	respBody, herr := client.HttpsGet(caCertPool.Clone(), clientPEM.Bytes(), clientPrivKeyPEM.Bytes(), server.URL)
+	respBody, herr := client.HTTPSGet(caCertPool.Clone(), clientPEM.Bytes(), clientPrivKeyPEM.Bytes(), server.URL)
 	if herr != nil {
 		panic(herr)
 	}
 
 	body := strings.TrimSpace(string(*respBody))
-	if body == "success!" {
-		fmt.Println(body)
-	} else {
+	if body != "success!" {
 		panic("not successful!")
 	}
+	fmt.Println(body)
 }

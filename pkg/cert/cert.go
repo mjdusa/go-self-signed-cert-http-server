@@ -57,7 +57,8 @@ func PEMEncodeBlock(blockType string, byArray []byte) (*bytes.Buffer, error) {
 	return buffer, nil
 }
 
-func createCertWithRSA(privateKeyBits int, template *x509.Certificate, parent *x509.Certificate, caPrivKey *rsa.PrivateKey) (*x509.Certificate, []byte, *bytes.Buffer, *rsa.PrivateKey, *bytes.Buffer, error) {
+func createCertWithRSA(privateKeyBits int, template *x509.Certificate, parent *x509.Certificate,
+	caPrivKey *rsa.PrivateKey) (*x509.Certificate, []byte, *bytes.Buffer, *rsa.PrivateKey, *bytes.Buffer, error) {
 	fail := func(err error) (*x509.Certificate, []byte, *bytes.Buffer, *rsa.PrivateKey, *bytes.Buffer, error) {
 		return nil, []byte{}, nil, nil, nil, err
 	}
@@ -99,7 +100,8 @@ func createCertWithRSA(privateKeyBits int, template *x509.Certificate, parent *x
 	return cert, certBytes, certPEM, privKey, privKeyPEM, nil
 }
 
-func CreateSelfSignedCA(privateKeyBits int, serialNumber *big.Int, subject pkix.Name, notBefore, notAfter time.Time) (*x509.Certificate, []byte, *bytes.Buffer, *rsa.PrivateKey, *bytes.Buffer, error) {
+func CreateSelfSignedCA(privateKeyBits int, serialNumber *big.Int, subject pkix.Name, notBefore,
+	notAfter time.Time) (*x509.Certificate, []byte, *bytes.Buffer, *rsa.PrivateKey, *bytes.Buffer, error) {
 	// define CA certificate template
 	template := &x509.Certificate{
 		SerialNumber:          serialNumber,
@@ -115,7 +117,9 @@ func CreateSelfSignedCA(privateKeyBits int, serialNumber *big.Int, subject pkix.
 	return createCertWithRSA(privateKeyBits, template, template, nil)
 }
 
-func CreateSelfSignedCertificate(caCert *x509.Certificate, caPrivKey *rsa.PrivateKey, privateKeyBits int, serialNumber *big.Int, subject pkix.Name, notBefore, notAfter time.Time) (*x509.Certificate, []byte, *bytes.Buffer, *rsa.PrivateKey, *bytes.Buffer, error) {
+func CreateSelfSignedCertificate(caCert *x509.Certificate, caPrivKey *rsa.PrivateKey, privateKeyBits int,
+	serialNumber *big.Int, subject pkix.Name, notBefore, notAfter time.Time) (*x509.Certificate,
+	[]byte, *bytes.Buffer, *rsa.PrivateKey, *bytes.Buffer, error) {
 	// define certificate template
 	template := &x509.Certificate{
 		SerialNumber: serialNumber,
