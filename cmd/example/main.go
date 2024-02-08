@@ -19,7 +19,8 @@ func main() {
 
 // based loosly on https://shaneutt.com/blog/golang-ca-and-signed-cert-go/
 // WARNING: This is not a production ready example. It is for educational purposes only.
-// WARNING / NOTICE: Some of thes steps could be optimized by changing the order of operations, DON'T do it, it changes the behavior of the code and will break the cert creation process.
+// WARNING / NOTICE: Some of thes steps could be optimized by changing the order of operations,
+//   DON'T do it, it changes the behavior of the code and will break the cert creation process.
 
 func Example() {
 	now := time.Now().UTC()
@@ -28,21 +29,31 @@ func Example() {
 	caSerNbr := cert.CreateSerialNumber(1965)
 	serverSerNbr := cert.CreateSerialNumber(now.Year() - 1)
 
-	subject, err := cert.CreateSubject([]string{"Go Example Company, Inc."}, []string{"US"}, []string{"IA"}, []string{"Cedar Rapids"}, []string{"123 Main Street"}, []string{"52401"})
+	subject, err := cert.CreateSubject(
+		[]string{"Go Example Company, Inc."},
+		[]string{"US"},
+		[]string{"IA"},
+		[]string{"Cedar Rapids"},
+		[]string{"123 Main Street"},
+		[]string{"52401"})
 	if err != nil {
 		panic(err)
 	}
 
 	// create CA cert
-	//caCert, caCertBytes, caPEM, caPrivKey, caPrivKeyPEM, err := cert.CreateSelfSignedCA(4096, caSerNbr, subject, notBefore, notBefore.AddDate(10, 0, 0))
-	caCert, _, _, caPrivKey, _, err := cert.CreateSelfSignedCA(4096, caSerNbr, subject, notBefore, notBefore.AddDate(10, 0, 0))
+	// caCert, caCertBytes, caPEM, caPrivKey, caPrivKeyPEM, err :=
+	//   cert.CreateSelfSignedCA(4096, caSerNbr, subject, notBefore, notBefore.AddDate(10, 0, 0))
+	caCert, _, _, caPrivKey, _, err := cert.CreateSelfSignedCA(
+		4096, caSerNbr, subject, notBefore, notBefore.AddDate(10, 0, 0))
 	if err != nil {
 		panic(err)
 	}
 
 	// create server cert
-	//cert, certBytes, certPEM, privKey, privKeyPEM, err := cert.CreateSelfSignedCertificate(caCert, caPrivKey, 4096, serverSerNbr, subject, notBefore, notAfter)
-	_, _, serverPEM, _, serverPrivKeyPEM, err := cert.CreateSelfSignedCertificate(caCert, caPrivKey, 4096, serverSerNbr, subject, notBefore, notAfter)
+	// cert, certBytes, certPEM, privKey, privKeyPEM, err :=
+	//   cert.CreateSelfSignedCertificate(caCert, caPrivKey, 4096, serverSerNbr, subject, notBefore, notAfter)
+	_, _, serverPEM, _, serverPrivKeyPEM, err := cert.CreateSelfSignedCertificate(
+		caCert, caPrivKey, 4096, serverSerNbr, subject, notBefore, notAfter)
 	if err != nil {
 		panic(err)
 	}
@@ -56,8 +67,10 @@ func Example() {
 	clientSerNbr := cert.CreateSerialNumber(now.Year())
 
 	// create client cert
-	//cert, certBytes, certPEM, privKey, privKeyPEM, err := cert.CreateSelfSignedCertificate(caCert, caPrivKey, 4096, clientSerNbr, subject, notBefore, notAfter)
-	_, _, clientPEM, _, clientPrivKeyPEM, err := cert.CreateSelfSignedCertificate(caCert, caPrivKey, 4096, clientSerNbr, subject, notBefore, notAfter)
+	// cert, certBytes, certPEM, privKey, privKeyPEM, err :=
+	//   cert.CreateSelfSignedCertificate(caCert, caPrivKey, 4096, clientSerNbr, subject, notBefore, notAfter)
+	_, _, clientPEM, _, clientPrivKeyPEM, err := cert.CreateSelfSignedCertificate(
+		caCert, caPrivKey, 4096, clientSerNbr, subject, notBefore, notAfter)
 	if err != nil {
 		panic(err)
 	}
@@ -65,7 +78,7 @@ func Example() {
 	caCertPool := x509.NewCertPool()
 	caCertPool.AddCert(caCert)
 	// alternatively, you can use AppendCertsFromPEM, but it is not as efficient as AddCert
-	//caCertPool.AppendCertsFromPEM(caPEM.Bytes())
+	// caCertPool.AppendCertsFromPEM(caPEM.Bytes())
 
 	// setup server & start
 	serverTLSConf := &tls.Config{
@@ -73,6 +86,8 @@ func Example() {
 		Certificates: []tls.Certificate{serverCert},
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		ClientCAs:    caCertPool.Clone(),
+		MinVersion:   tls.VersionTLS12,
+		MaxVersion:   tls.VersionTLS13,
 		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 			// called after normal certificate verification, client cert is in verified first
 			// do custom verification here
