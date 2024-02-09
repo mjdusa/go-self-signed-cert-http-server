@@ -16,7 +16,8 @@ env:
   GOPRIVATE: ''
 
 jobs:
-  linter:
+  golangci-lint:
+    name: GoLangCI-Lint
     strategy:
       matrix:
         go-version: ['oldstable', 'stable']
